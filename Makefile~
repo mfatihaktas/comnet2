@@ -6,4 +6,4 @@ bd: $(boost_deneme_sf)
 eg: $(boost_deneme_sf)
 		c++ -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0 $< -o $(boost_deneme_tf)
 clean:
-		rm -rf $(boost_deneme_tf) 
+		rm -rf $(boost_deneme_tf)
