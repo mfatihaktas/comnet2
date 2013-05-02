@@ -4,6 +4,12 @@ if [ $1 = 'eg' ]
 then
 	make eg
 	./boost_deneme
+	
+elif [ $1 = 'd' ]
+then
+	make deneme
+	./deneme
+	
 elif [ $1 = 'g' ]
 then
 	make gateway

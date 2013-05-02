@@ -1,0 +1,35 @@
+bd_sf=boost_deneme.cpp
+bd_tf=boost_deneme
+ftf_tf=forwarding_table_filler
+d_tf=deneme
+
+
+bd: $(bd_sf)
+		gcc $< -O3 -o $(bd_tf)
+eg: $(bd_sf)
+		c++  $< -o $(bd_tf)
+ftf: forwarding_table_filler.cpp
+		c++ -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0 $< -o $(ftf_tf)
+d: deneme.cpp $(ftf_tf)
+		c++ -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0 $< -o $(d_tf)
+clean:
+		rm -rf $(boost_deneme_tf) $(ftf_tf) $(d_tf)
+		
+		CC = g++
+BGLFLAGS = -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0
+
+SOURCES = deneme.cpp forwarding_table_filler.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+EXECUTABLE = exec
+
+all: $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(BGLLAGS) $(OBJECTS) -o $@
+	
+.cpp.o:
+	$(CC) $(BGLFLAGS) $< -o $@
+
+
+clean:
+		rm -rf $(OBJECTS) 

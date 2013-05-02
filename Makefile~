@@ -1,9 +1,21 @@
-boost_deneme_sf=boost_deneme.cpp
-boost_deneme_tf=boost_deneme
+CC = g++
+BGLFLAGS = -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0 -O3
+CCOPTS = -g -Wall
 
-bd: $(boost_deneme_sf)
-		gcc $< -O3 -o $(boost_deneme_tf)
-eg: $(boost_deneme_sf)
-		c++ -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0 $< -o $(boost_deneme_tf)
+bd_sf=boost_deneme.cpp
+bd_tf=boost_deneme
+ftf_tf=forwarding_table_filler.o
+d_tf=deneme
+
+
+eg: $(bd_sf)
+		$(CC) $(CCOPTS) $< -o $(bd_tf)
+		
+ftf: forwarding_table_filler.cpp
+		$(CC) $(CCOPTS) $(BGLFLAGS) $< -o $(ftf_tf)
+		
+d: deneme.cpp
+		$(CC) $(CCOPTS) $(BGLFLAGS) $< -o $(d_tf)
+		
 clean:
-		rm -rf $(boost_deneme_tf)
+		rm -rf $(bd_tf) $(ftf_tf) $(d_tf) 
