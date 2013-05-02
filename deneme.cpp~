@@ -19,7 +19,10 @@ int main(){
 	enum { A, B, C, D, E, F, N };
 	const int num_nodes = N;
 	const char* name = "ABCDEF";
-	// writing out the edges in the graph
+	std::map<char,int> vname_vindex;
+	for(int i=0; i<N; i++){
+		vname_vindex.insert (std::pair<char,int>(name[i], i));
+	}
 	typedef std::pair<int, int> Edge;
 	Edge edge_array[] = { Edge(A,B), Edge(B,A), Edge(C,A), Edge(A,C), Edge(E,F), Edge(F,E),
 		                    Edge(D,C), Edge(C,D), Edge(C,E), Edge(E,C), Edge(B,D), Edge(D,B) };
@@ -31,11 +34,15 @@ int main(){
 	// declare a graph object
 	graph_t g(edge_array, edge_array+num_edges, weights, num_nodes);
 	//
-  ForwardingTableFiller <graph_t> ftf (g, name);
+	//Filling up map for <next_hop, port#> (will be done by Discovery protocol)
+  std::map <char, int> nhop_port;
+  nhop_port.insert (std::pair<char,int>('B', 1));
+  //nhop_port.insert (std::pair<char,int>('C', 2));
+  //nhop_port.insert (std::pair<char,int>('D', 3));
+  
+  //
+  ForwardingTableFiller <graph_t> ftf (0,g, name, vname_vindex, nhop_port);
 	
-	ftf.print_graph();
-  std::cout<<"--------------------------------\n";
-  ftf.run_dijkstra(0);
 	return 0;
 }
 

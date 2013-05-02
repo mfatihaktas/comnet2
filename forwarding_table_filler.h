@@ -6,12 +6,23 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <algorithm>                                // for std::for_each
 
+
 using namespace boost;
 
 template <typename Graph>
 class ForwardingTableFiller{
+	private:
+		Graph g;
+		const char *name;
+		std::map <char, int> vname_vindex;
+		//To keep forwarding table
+		std::map <char, int> nhop_port;
+		std::map <char, int> dest_port;
+		int num_neighbors;
+		std::map < char, std::map<char, int> > nhop_dest_dist;
 	public:
-		ForwardingTableFiller(Graph& g, const char *name);
+		ForwardingTableFiller(int source_index, Graph& g, const char *name,
+													std::map<char,int>& vname_vindex,	std::map<char,int>& nhop_port);
 		void print_graph();
 		//void run_dijkstra(int source_index);
 		typedef typename graph_traits < Graph >::vertex_descriptor vertex_descriptor;
@@ -19,6 +30,7 @@ class ForwardingTableFiller{
 		typedef typename std::vector<vertex_descriptor>::iterator vertex_iterator;
 		
 		void run_dijkstra(int source_index){
+		  std::cout << "Dikstra is running\n";
 			std::vector<vertex_descriptor> p(num_vertices(g));
 			std::vector<int> d(num_vertices(g));
 
@@ -34,7 +46,7 @@ class ForwardingTableFiller{
 			}
 			std::cout << std::endl;
 			//
-		  //Shortest-Path formation between (start)-(end)
+		  //Printing the Shortest-Path formation between (start)-(end)
 		  std::vector<vertex_descriptor> path;
 		  
 		  for (boost::tie(vi, vend) = vertices(g); vi != vend; ++vi) {
@@ -53,11 +65,57 @@ class ForwardingTableFiller{
 				}
 				std::cout << std::endl;
 			}
+			//Filling up the tables
+			//HashMap hash_map();
 			
+			//std::cout << "Next-Hop info\n";
+			//std::cout << "from source: " << name[s] << std::endl;
+			for (boost::tie(vi, vend) = vertices(g); vi != vend; ++vi) {
+		  	vertex_descriptor current=*vi;
+		  	//std::cout << "next-hop to " << name[*vi];
+		  	
+				vertex_descriptor temp = current;
+				while(current!=s) {
+	    		temp = current;
+  		 		current=p[current];
+			  }
+			  //Add the next hop to forwarding table
+			  dest_port.insert (std::pair<char,int>(name[*vi], nhop_port[name[temp]]));
+			  //std::cout << " is " << name[temp] << std::endl;
+			}
+			//Print dest_nhop to see if it is correctly filled up
+			std::cout << "dest_port includes:\n";
+			std::map<char,int>::iterator it;
+			for (it=dest_port.begin(); it!=dest_port.end(); ++it)
+  		  std::cout << it->first << " => " << it->second << "\n";
+  		  
+  		//Creating nhop_dest_dist table (this will be used to implement MC logic)
+  		p.clear();
+  		d.clear();
+  		
+			std::cout << "-----nhop_port------\n";
+  		for (it=nhop_port.begin(); it!=nhop_port.end(); ++it)
+  			std::cout << it->first << " => " << it->second << "\n";
+  			
+  		for (it=nhop_port.begin(); it!=nhop_port.end(); ++it){
+  			s = vertex(vname_vindex.find(it->first)->second, g);
+  			dijkstra_shortest_paths(g, s, predecessor_map(&p[0]).distance_map(&d[0]));
+  			//nhop_dest_dist.insert (std::pair<char, std::map<char, int> >(it->first, std::map<char, int>));  			
+  			//std::map <char, int> ha;
+  			//nhop_dest_dist.insert (std::pair<char, std::map<char, int> >(it->first, new std::map <char, int>));
+  			for (boost::tie(vi, vend) = vertices(g); vi != vend; ++vi) {
+					nhop_dest_dist[it->first][name[*vi]] = d[*vi];
+				}
+  		}
+  		//Check if the tables for nhops are created correctly
+  		std::map< char, std::map<char, int> >::iterator it_ndd;
+  		for (it_ndd=nhop_dest_dist.begin(); it_ndd!=nhop_dest_dist.end(); ++it_ndd){
+  			std::cout << "Forwarding Table for nhop: " << it_ndd->first << std::endl;
+  			for( it=(it_ndd->second).begin(); it != (it_ndd->second).end(); it++)
+	      	std::cout << it->first << " => " << it->second << std::endl;
+  		}
+  		
 		}
-	private:
-		Graph g;
-		const char *name;
 };
 
 #include "forwarding_table_filler.tpp"

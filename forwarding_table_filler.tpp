@@ -45,9 +45,19 @@ struct exercise_vertex {
 };
 
 template <typename Graph>
-ForwardingTableFiller<Graph>::ForwardingTableFiller(Graph& g, const char *name){
+ForwardingTableFiller<Graph>::ForwardingTableFiller(int source_index, Graph& g, const char *name, 
+																										std::map<char,int>& vname_vindex, std::map<char,int>& nhop_port){
 	this->g=g;
 	this->name=name;
+	this->nhop_port=nhop_port;
+	this->vname_vindex=vname_vindex;
+	
+	std::cout << "Created graph is:\n";
+	print_graph();
+	std::cout<<"--------------------------------\n";
+  run_dijkstra(source_index);
+  //Create forwarding table maps for neighbor
+  num_neighbors = nhop_port.size();
 }
 
 template <typename Graph>
