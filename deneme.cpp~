@@ -16,16 +16,17 @@ int main(){
 	typedef graph_traits < graph_t >::vertex_descriptor vertex_descriptor;
   typedef graph_traits < graph_t >::edge_descriptor edge_descriptor;
 	// Make convenient labels for the vertices
-	enum { A, B, C, D, E, F, N };
+	enum { A, B, C, D, E, F, G, N };
 	const int num_nodes = N;
-	const char* name = "ABCDEF";
+	const char* name = "ABCDEFG";
 	std::map<char,int> vname_vindex;
 	for(int i=0; i<N; i++){
 		vname_vindex.insert (std::pair<char,int>(name[i], i));
 	}
 	typedef std::pair<int, int> Edge;
 	Edge edge_array[] = { Edge(A,B), Edge(B,A), Edge(C,A), Edge(A,C), Edge(E,F), Edge(F,E),
-		                    Edge(D,C), Edge(C,D), Edge(C,E), Edge(E,C), Edge(B,D), Edge(D,B) };
+		                    Edge(D,C), Edge(C,D), Edge(C,E), Edge(E,C), Edge(B,D), Edge(D,B),
+		                    Edge(B,G), Edge(G,B)};
 	const int num_edges = sizeof(edge_array)/sizeof(edge_array[0]);
 	int weights[num_edges];
 	for(int i=0; i<num_edges; i++){
@@ -37,12 +38,16 @@ int main(){
 	//Filling up map for <next_hop, port#> (will be done by Discovery protocol)
   std::map <char, int> nhop_port;
   nhop_port.insert (std::pair<char,int>('B', 1));
-  //nhop_port.insert (std::pair<char,int>('C', 2));
-  //nhop_port.insert (std::pair<char,int>('D', 3));
+  nhop_port.insert (std::pair<char,int>('C', 2));
   
   //
   ForwardingTableFiller <graph_t> ftf (0,g, name, vname_vindex, nhop_port);
-	
+	int f_port = ftf.forward_to_port(1, "D", NULL);
+	std::cout << "unicast to \"D\" forwarding_port: " << f_port << std::endl;
+	int* f_ports = new int[3];
+	f_port = ftf.forward_to_port(3, "DEF", &f_ports);
+	std::cout << "f_ports: " << f_ports[0] << " - "	<< f_ports[1] << " - " << f_ports[2] << std::endl;
+	delete f_ports;
 	return 0;
 }
 

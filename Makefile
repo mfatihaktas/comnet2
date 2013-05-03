@@ -1,6 +1,7 @@
 CC = g++
 BGLFLAGS = -I /home/mehmet/Desktop/comnet2/ComNet_project/boost_1_53_0 -O3
-CCOPTS = -g -Wall
+CCOPTS = 
+#-g -Wall
 
 bd_sf=boost_deneme.cpp
 bd_tf=boost_deneme
