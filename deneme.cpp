@@ -5,6 +5,7 @@
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
 #include "forwarding_table_filler.h"
+#include "router.h"
 
 using namespace boost;
 
@@ -44,10 +45,17 @@ int main(){
   ForwardingTableFiller <graph_t> ftf (0,g, name, vname_vindex, nhop_port);
 	int f_port = ftf.forward_to_port(1, "D", NULL);
 	std::cout << "unicast to \"D\" forwarding_port: " << f_port << std::endl;
-	int* f_ports = new int[3];
-	f_port = ftf.forward_to_port(3, "GEF", &f_ports);
-	std::cout << "f_ports: " << f_ports[0] << " - "	<< f_ports[1] << " - " << f_ports[2] << std::endl;
+	int* f_ports = new int[2];
+	f_port = ftf.forward_to_port(2, "GE", &f_ports);
+	std::cout << "f_ports: " << f_ports[ 0] << " - "	<< f_ports[1] << " - " << f_ports[2] << std::endl;
 	delete f_ports;
+	
+	//Router trials
+	Router my_r;
+	char payload [] = "ahmet\0";
+	Packet* data_packet = my_r.create_data_packet('d', '12', 'A', '3', "GEF", strlen(payload), payload);
+	my_r.print_packet(data_packet);
+	
 	return 0;
 }
 

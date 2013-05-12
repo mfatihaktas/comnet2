@@ -12,6 +12,7 @@ using namespace boost;
 template <typename Graph>
 class ForwardingTableFiller{
 	private:
+		int source_index;
 		Graph g;
 		const char *name;
 		std::map <char, int> vname_vindex;
@@ -27,9 +28,16 @@ class ForwardingTableFiller{
 		typedef typename graph_traits < Graph >::edge_descriptor edge_descriptor;
 		typedef typename std::vector<vertex_descriptor>::iterator vertex_iterator;
 	public:
+		ForwardingTableFiller() {};
 		ForwardingTableFiller(int source_index, Graph& g, const char *name,
 													std::map<char,int>& vname_vindex,	std::map<char,int>& nhop_port);
 		void print_graph();
+		void set_all(int source_index, Graph& g, const char *name, 
+								 std::map<char,int>& vname_vindex, std::map<char,int>& nhop_port);
+		void do_initial_job();
+		
+		
+		
 		
 		int forward_to_port(int num_dests, const char* dests, int** d_p){
 			if(num_dests == 1){ //Unicast packet
@@ -88,8 +96,9 @@ class ForwardingTableFiller{
 						}
 					}
 					//Setting returns
-					*d_p[0] = nhop_port.find((dest_poss_nhop.find(dests[0])->second).find(min_indexes[0])->second)->second;
-					*d_p[1] = nhop_port.find((dest_poss_nhop.find(dests[1])->second).find(min_indexes[1])->second)->second;
+					(*d_p)[0] = nhop_port.find((dest_poss_nhop.find(dests[0])->second).find(min_indexes[0])->second)->second;
+					(*d_p)[1] = nhop_port.find((dest_poss_nhop.find(dests[1])->second).find(min_indexes[1])->second)->second;
+
 					return -1;
 				}
 				else if(num_dests == 3){

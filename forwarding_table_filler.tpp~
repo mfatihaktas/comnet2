@@ -51,13 +51,12 @@ ForwardingTableFiller<Graph>::ForwardingTableFiller(int source_index, Graph& g, 
 	this->name=name;
 	this->nhop_port=nhop_port;
 	this->vname_vindex=vname_vindex;
+	num_neighbors = nhop_port.size();
 	
-	std::cout << "Created graph is:\n";
+	std::cout << "Given graph is:\n";
 	print_graph();
 	std::cout<<"--------------------------------\n";
   run_dijkstra(source_index);
-  //Create forwarding table maps for neighbor
-  num_neighbors = nhop_port.size();
 }
 
 template <typename Graph>
@@ -72,8 +71,21 @@ void ForwardingTableFiller<Graph>::print_graph(){
 	std::for_each(vertices(g).first, vertices(g).second, exercise_vertex<Graph>(g, name));
 }
 
-/*
+// GETTERS AND SETTERS
 template <typename Graph>
-void ForwardingTableFiller<Graph>::run_dijkstra(int source_index){}
-*/
+void ForwardingTableFiller<Graph>::set_all(int source_index, Graph& g, const char *name, 
+																					 std::map<char,int>& vname_vindex, std::map<char,int>& nhop_port){
+	this->g = g;
+	this->name = name;
+	this->nhop_port = nhop_port;
+	this->vname_vindex = vname_vindex;
+	num_neighbors = nhop_port.size();
+}
 
+template <typename Graph>
+void ForwardingTableFiller<Graph>::do_initial_job(){
+	std::cout << "Given graph is:\n";
+	print_graph();
+	std::cout<<"--------------------------------\n";
+  run_dijkstra(source_index);
+}
