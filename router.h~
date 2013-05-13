@@ -28,6 +28,9 @@ struct route
 	string Dist;
 };
 
+
+class MySendingPort;
+
 class Router{
 	private:
 		char id;
@@ -40,11 +43,13 @@ class Router{
 		ifstream* file_ptr;
 		ifstream* file2_ptr;
 		
-		SendingPort** sending_ports;
+		MySendingPort** sending_ports;
 		ReceivingPort** rxing_ports;
 		pthread_t* rxing_port_threads;
-		SendingPort** disc_txing_ports;
+		MySendingPort** disc_txing_ports;
 		pthread_t* disc_txing_port_threads;
+		
+		MySendingPort* disc_tx_timer_port;
 		//
 		ForwardingTableFiller <graph_t> ftf;
 	public:
@@ -63,11 +68,11 @@ class Router{
 			for(int i=0; i<num_neighbors; i++){
 				nbr_tbl.push_back(nhopinfo());
 			}
-			port_info_read_fromtxt("deneme.txt");//nettopo_file_name);
+			port_info_read_fromtxt(nettopo_file_name);//nettopo_file_name);
 			//std::cout << "nbr_tbl size: " << nbr_tbl.size() << std::endl;
 			//Create port arrays for one-hop TX and RX
 			open_rx_channels();
-			open_disc_tx_channels();
+			//open_disc_tx_channels();
 		};
 		~Router(){
 		/*
@@ -100,9 +105,23 @@ class Router{
     void* tx_disc_message_on_port(void* thread_id);
     static void* bst_tx_disc_message_on_port(void *context);
     void open_disc_tx_channels();
+    void disc_tx_timer_action();
 };
 
-
-
-
+class MySendingPort :public SendingPort
+{
+public:
+	MySendingPort():SendingPort(){ }
+	MySendingPort(Router* my_router):SendingPort(){
+		this->my_router = my_router;
+	}
+	inline void timerHandler()
+	{
+		 	cout << "Timer is fired.Resend the Hello Packets !\n"; 
+		 	my_router->disc_tx_timer_action();
+	}
+private:
+	Router* my_router;
+public:
+};
 #endif

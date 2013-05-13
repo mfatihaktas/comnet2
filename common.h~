@@ -330,13 +330,7 @@ class SendingPort : public Port
    * toggle broadcast option off
    */
   inline void setBroadcastOff(){bcastflag_ = 0;}
-  /** 
-   * TimerHandler is called when the TxTimer expires.
-   * This function is virtual. So another child class has to be derived from this 
-   * base class to use the timer.
-   */
-  virtual void timerHandler()=0;
-
+  
 
  protected:
   /// this flag indicates the port ought to broadcast or unicast a packet. 
@@ -355,6 +349,13 @@ class SendingPort : public Port
    * When this timer expires, the timerHandler will be called.
    */
    TxTimer timer_;
+   
+   /** 
+   * TimerHandler is called when the TxTimer expires.
+   * This function is virtual. So another child class has to be derived from this 
+   * base class to use the timer.
+   */
+   void timerHandler(){};
 };
 
 /// A Receiving Port Class

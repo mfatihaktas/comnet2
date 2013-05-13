@@ -168,20 +168,56 @@ void Router::port_info_read_fromtxt(char* file_name){
   }
 }
 
-pthread_mutex_t mutex_lop = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_bst_lop = PTHREAD_MUTEX_INITIALIZER;
 int lop_thread_index = -1;
 void* Router::bst_listen_on_port(void* context){ //void* thread_id){
-	pthread_mutex_unlock( &mutex_lop );
+	pthread_mutex_lock( &mutex_bst_lop );
 	++lop_thread_index;
-	pthread_mutex_unlock( &mutex_lop );
+	pthread_mutex_unlock( &mutex_bst_lop );
 	return ((Router*)context)->listen_on_port((void *)&lop_thread_index);
 }
 
+pthread_mutex_t mutex_lop = PTHREAD_MUTEX_INITIALIZER;
 void* Router::listen_on_port(void* thread_id){
 	int* tid = (int *)(thread_id);
-  cout<<endl<<"Starting to listen on port " << nbr_tbl.at(*tid).RxP<<"......\n";
+	pthread_mutex_lock( &mutex_lop );
+	int tlocal_tid = *tid;
+	pthread_mutex_unlock( &mutex_lop );
+  cout<<endl<<"Starting to listen on port " << nbr_tbl.at(tlocal_tid).RxP<<"......\n";
+  PacketHdr *hdr;
+
   while(1){
-  	Packet* rxed_p = rxing_ports[*tid]->receivePacket();
+  	Packet* rxed_p = rxing_ports[tlocal_tid]->receivePacket();
+  	hdr = rxed_p->accessHeader();
+  	if(hdr->getOctet(0) == 'd'){ //Hello packet is rxed
+  		cout << "Disc packet is rxed from node_id: " << hdr->getOctet(1)
+  				 << " over rx_port:" << nbr_tbl.at(tlocal_tid).RxP << endl;
+  		//Send Hello Ack
+  		/*
+  		int rc = pthread_create(&disc_txing_port_threads[i], NULL, &Router::bst_tx_disc_message_on_port, (void *)(this));
+    	if(rc)
+    	{
+     	 	cout<<endl<<"ERROR: return code from pthread_create() is "<<rc;
+				exit(-1);
+    	}
+    	*/
+    	try{
+	  		disc_txing_ports[tlocal_tid]->sendPacket(create_control_packet('1'));
+		  }catch(const char *reason){
+  			cerr << "Exception:" << reason << endl;
+  		}
+  		//disc_txing_ports[tlocal_tid]->sendPacket(create_control_packet('1'));
+  	}
+  	else if(hdr->getOctet(0) == '1'){ //Hello Ack is rxed
+  		cout << "Hello Ack is rxed from node_id: " << hdr->getOctet(1)
+  				 << " over rx_port:" << nbr_tbl.at(tlocal_tid).RxP << endl;
+  	}
+  	else if(hdr->getOctet(0) == 'l'){ //LSP packet is rxed
+  		cout << "LSP packet is rxed ..." << endl;
+  	}
+  	else{
+  		cout << "Some packet with unrecognized type is rxed\n";
+  	}
   }
 }
 
@@ -213,13 +249,13 @@ void Router::open_disc_tx_channels(){
  		std::cout << "Router::open_disc_tx_channels(); num_neighbors is 0\n";
  		exit(1);
  	}
- 	disc_txing_ports = new SendingPort*[num_neighbors];
+ 	disc_txing_ports = new MySendingPort*[num_neighbors];
 	disc_txing_port_threads = new pthread_t[num_neighbors];
 	
 	for(int i=0; i<num_neighbors; i++){
 		Address* router_port_addr = new Address("localhost", (short)(atoi(nbr_tbl[i].TxP)));
 		Address* nhop_dst_addr =  new Address("localhost", (short)(atoi(nbr_tbl[i].DstP)));
-  	disc_txing_ports[i] = new SendingPort();
+  	disc_txing_ports[i] = new MySendingPort();
   	disc_txing_ports[i]->setAddress(router_port_addr);
   	disc_txing_ports[i]->setRemoteAddress(nhop_dst_addr);
   	disc_txing_ports[i]->init();
@@ -231,21 +267,60 @@ void Router::open_disc_tx_channels(){
 			exit(-1);
     }
 	}
+	
+	//Disc Timer business
+ 	disc_tx_timer_port = new MySendingPort(this);
+	//Initializing disc_timer_port and starting the timer
+	//Careful !!! not to use the ports below
+	Address * my_tx_addr = new Address((char*)"localhost", (short)(8001+(int)id));
+	Address * dst_addr =  new Address((char*)"localhost", (short)(8000+(int)id));
+  disc_tx_timer_port->setAddress(my_tx_addr);
+  disc_tx_timer_port->setRemoteAddress(dst_addr);
+	disc_tx_timer_port->init();
+
+	disc_tx_timer_port->timer_.startTimer(10);
+	cout << "Dimer started\n";
+	
 }
 
+pthread_mutex_t mutex_tdmop = PTHREAD_MUTEX_INITIALIZER;
 void* Router::tx_disc_message_on_port(void* thread_id){
 	int* tid = (int *)(thread_id);
-  cout<<endl<<"Sending disc message on port " << nbr_tbl.at(*tid).TxP<<"......\n";
+	pthread_mutex_lock( &mutex_tdmop );
+	int tlocal_tid = *tid;
+	pthread_mutex_unlock( &mutex_tdmop );
+  cout<<endl<<"Sending disc message from tx_port " << nbr_tbl.at(tlocal_tid).TxP
+  		<<" to dst_port " << nbr_tbl.at(*tid).DstP << endl;
   //send disc message
+  try{
+	  disc_txing_ports[tlocal_tid]->sendPacket(create_control_packet('d'));
+  }catch(const char *reason){
+  	cerr << "Exception:" << reason << endl;
+  }
+  
 }
-pthread_mutex_t mutex_tdmop = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t mutex_bst_tdmop = PTHREAD_MUTEX_INITIALIZER;
 int tdmop_thread_index = -1;
 void* Router::bst_tx_disc_message_on_port(void *context){
 	
-	pthread_mutex_unlock( &mutex_tdmop );
+	pthread_mutex_lock( &mutex_bst_tdmop );
 	++tdmop_thread_index;
-	pthread_mutex_unlock( &mutex_tdmop );
+	pthread_mutex_unlock( &mutex_bst_tdmop );
 	return ((Router*)context)->tx_disc_message_on_port((void *)&tdmop_thread_index);
+}
+
+void Router::disc_tx_timer_action(){
+	tdmop_thread_index = -1;
+	for(int i=0; i<num_neighbors; i++){
+  	int rc = pthread_create(&disc_txing_port_threads[i], NULL, &Router::bst_tx_disc_message_on_port, (void *)(this));
+    if(rc)
+    {
+      cout<<endl<<"ERROR: return code from pthread_create() is "<<rc;
+			exit(-1);
+    }
+	}
+	disc_tx_timer_port->timer_.startTimer(10);
 }
 
 Packet* Router::create_control_packet(char p_type){
@@ -253,10 +328,17 @@ Packet* Router::create_control_packet(char p_type){
 	PacketHdr *hdr = my_packet->accessHeader();
 	
 	if(p_type == 'd'){ //Packet is discovery type
-		//Settint the specific header fields
-		hdr->setOctet(p_type,0);
+		//Setting the specific header fields
+		hdr->setOctet('d',0);
 		hdr->setOctet(id,1);
 
+		return my_packet;
+	}
+	else if(p_type == '1'){
+		//Disc Ack packet type is '1'
+		hdr->setOctet('1',0);
+		hdr->setOctet(id,1);
+		
 		return my_packet;
 	}
 	else if(p_type == 'l'){ //Packet is LSP type
@@ -269,6 +351,7 @@ void Router::wait_for_all_threads(){
 	for(int j=0; j < num_neighbors; j++)
 	{
 		pthread_join( rxing_port_threads[j], NULL);
+		pthread_join( disc_txing_port_threads[j], NULL);
 	}
 	
 }
@@ -281,7 +364,7 @@ int main(int argc, char* argv[]){
 	
 	Router router((char)(*argv[1]), (char*)"sample_network.txt");
 	
-	router.wait_for_all_threads();
+	//router.wait_for_all_threads();
 	
 	string input = "";
 	//cout << "Please enter a valid sentence (with spaces):\n>";

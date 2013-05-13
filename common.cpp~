@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <string.h>
-#include <time.h>
-#include <pthread.h>
 using namespace std;
 
 //================================================================
@@ -22,8 +20,8 @@ int PacketHdr::getIntegerInfo(int position)
   val = *(p++);
   val = val << 8 | *(p++);
   val = val << 8 | *(p++);
-  val = val << 8 | *(p);
-  
+  val = val << 8 | *(p++);
+
   return val;
 }
 
@@ -54,7 +52,6 @@ void PacketHdr::setShortIntegerInfo(short b, int position)
   *(p++) =  b & 0xFF;
   length_+=2;
 }
-
 
 //=================================================================
 //  Packet Class
@@ -334,7 +331,7 @@ void Port::decodeSockAddress(Address *addr, struct sockaddr_in *address)
 // Sending Port Class
 
 
-SendingPort::SendingPort(): Port(),bcastflag_(0),timer_(this)
+SendingPort::SendingPort(): Port(),bcastflag_(0),timer_(this) 
 {
   setHostname("localhost"); 
   setPort(DEFAULT_SEND_PORT);  
@@ -342,7 +339,7 @@ SendingPort::SendingPort(): Port(),bcastflag_(0),timer_(this)
 }
 
 
-SendingPort::SendingPort(char *hostname, short port):Port(),bcastflag_(0),timer_(this)
+SendingPort::SendingPort(char *hostname, short port):Port(),bcastflag_(0)
 {
   setHostname(hostname);
   setPort(port);
@@ -420,6 +417,7 @@ void SendingPort::sendPacket(Packet* pkt)
    }
 }
 
+
 //====================================================================
 // Functions of ReceivingPort class
 /**
@@ -493,7 +491,7 @@ Packet* ReceivingPort::receivePacket()
   }         
   decodeSockAddress( &itsaddr_, &tmpSockAddr);
   pkt_->extractHeader(tmpBuffer_);
-  //tmpBuffer_ pointer shall not be moved/shifted,it will reused by the receiving port.
+  //tmpBuffer_ point shall not be moved,it will reused by the receiving port.
   pkt_->fillPayload(len-1-pkt_->getHeaderSize(), tmpBuffer_+pkt_->getHeaderSize()+1 );
   return pkt_;
 }
@@ -502,31 +500,26 @@ Packet* ReceivingPort::receivePacket()
 //    LossyReceivingPort class
 /**
  *  Constructor with parameter (drop probability p)
- *  Using a fixed link delay: 1 second 
  */
-LossyReceivingPort::LossyReceivingPort(float lossyratio): ReceivingPort(), loss_ratio_(lossyratio),secdelay_(1)
+LossyReceivingPort::LossyReceivingPort(float lossyratio): ReceivingPort(), loss_ratio_(lossyratio)
 {
 }
 
 /**
- * Simulate link delay of 1 seconds. Drop packets with a propabilty equal to loss_ratio 
+ * Drop packets with a propabilty equal to loss_ratio
  */
 Packet* LossyReceivingPort::receivePacket()
 {   
   Packet *p = ReceivingPort::receivePacket();
-  //simulate some delay
-  sleep(secdelay_); //delay
   float  x;
   // Set evil seed (initial seed)
   srand( (unsigned)time( NULL ) );
   x = (double) rand()/RAND_MAX;
-  //cout << x << endl;
   if ( x <= loss_ratio_) 
     return NULL;
   else
     return p;
 }
-
 
 //====================================================
 ///         TxTimer class
