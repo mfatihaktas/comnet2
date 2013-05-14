@@ -12,6 +12,8 @@ typedef adjacency_list<vecS, vecS, bidirectionalS, no_property,
 typedef graph_traits < graph_t >::vertex_descriptor vertex_descriptor;
 typedef graph_traits < graph_t >::edge_descriptor edge_descriptor;
 //
+#define MAX_NUM_NODES 10
+
 #define MAX_PORTFIELD_SIZE 10
 struct nhopinfo
 {
@@ -46,12 +48,29 @@ class Router{
 		MySendingPort** sending_ports;
 		ReceivingPort** rxing_ports;
 		pthread_t* rxing_port_threads;
-		MySendingPort** disc_txing_ports;
-		pthread_t* disc_txing_port_threads;
+		MySendingPort** txing_ports;
+		pthread_t* txing_port_threads;
 		
 		MySendingPort* disc_tx_timer_port;
+		MySendingPort* ls_tx_timer_port;
+		
+		std::map <char, int> nhop_hello_ack_rxed;
+		int ls_seq_num;
+		vector<char> graph_name;
+		int num_of_total_nodes;
+		std::map <char, char*> netnode_nhops;
+		char* final_graph_name;
+		std::map <char, int> nhop_port;
+		std::map <int, char> port_nhop;
 		//
-		ForwardingTableFiller <graph_t> ftf;
+		typedef std::pair<int, int> Edge;
+		int num_edges;
+		Edge* edge_array;
+		//int weights[num_edges];
+		char* nhops;
+		graph_t* g_p;
+		//
+		ForwardingTableFiller* <graph_t> ftf_p;
 	public:
 		Router(){};
 		Router(char id, char* nettopo_file_name){
@@ -62,6 +81,7 @@ class Router{
 			num_neighbors = 0;
 			num_neighbors_replied_hello = 0;
 			discovery_done = false;
+			ls_seq_num = 0;
 			
 			find_numneighbors_init_nbrtbl(nettopo_file_name);
 			
@@ -72,7 +92,10 @@ class Router{
 			//std::cout << "nbr_tbl size: " << nbr_tbl.size() << std::endl;
 			//Create port arrays for one-hop TX and RX
 			open_rx_channels();
-			//open_disc_tx_channels();
+			open_disc_tx_channels();
+			wait_for_all_nhops_to_be_disced();
+			broadcast_ls_packets();
+			
 		};
 		~Router(){
 		/*
@@ -84,13 +107,13 @@ class Router{
 			delete [] rxing_port_threads;
 		*/
 		};
-		int* handle_rxed_data_packet(Packet* p);
+		int* forward_rxed_data_packet_to_port(Packet* p);
 		void forward_incoming_data_packet(Packet* p);
 		
 		void simple_exp(int source_index, graph_t& g, const char *name, 
 										std::map<char,int>& vname_vindex, std::map<char,int>& nhop_port);
 										
-		void print_packet(Packet* p);
+		void print_data_packet(Packet* p);
 		Packet*	create_data_packet(char p_type, char ttl, char src_addr, char n_addr, 
 															 char* dest_addrs, int payload_size, char* payload);
 															 
@@ -106,21 +129,41 @@ class Router{
     static void* bst_tx_disc_message_on_port(void *context);
     void open_disc_tx_channels();
     void disc_tx_timer_action();
+    void wait_for_all_nhops_to_be_disced();
+    //Disc is done now time for LSP
+    void* tx_ls_packet_on_port(void* thread_id);
+    static void* bst_tx_ls_packet_on_port(void *context);
+    void broadcast_ls_packets();
+    void ls_tx_timer_action();
+    void extract_ls_info(Packet* p);
+    void send_ls_to_outgoing_ports(char* incoming_TxP, Packet* p);
+    void build_map();
+    void send_packet_over_port(Packet* p, int port);
+    void send_data_packet(Packet* p);
 };
 
 class MySendingPort :public SendingPort
 {
 public:
 	MySendingPort():SendingPort(){ }
-	MySendingPort(Router* my_router):SendingPort(){
+	MySendingPort(Router* my_router, char timer_for_what):SendingPort(){
 		this->my_router = my_router;
+		this->timer_for_what = timer_for_what;
 	}
 	inline void timerHandler()
 	{
-		 	cout << "Timer is fired.Resend the Hello Packets !\n"; 
+	 	cout << "\nTimer is fired! ";
+	 	if(timer_for_what == 'd'){
+		 	cout<< "Resend the Hello Packets !\n"; 
 		 	my_router->disc_tx_timer_action();
+	 	}
+		else if(timer_for_what =='l'){
+			cout<< "Resend the LS Packets !\n"; 
+		 	my_router->ls_tx_timer_action();
+		}
 	}
 private:
+	char timer_for_what;
 	Router* my_router;
 public:
 };

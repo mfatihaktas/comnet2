@@ -37,8 +37,6 @@ class ForwardingTableFiller{
 		void do_initial_job();
 		
 		
-		
-		
 		int forward_to_port(int num_dests, const char* dests, int** d_p){
 			if(num_dests == 1){ //Unicast packet
 				return dest_port.find(dests[0])->second;

@@ -5,13 +5,16 @@ then
 	make eg
 	./boost_deneme
 	
-elif [ $1 = 'f' ]
+elif [ $1 = '1' ]
 then
 	make clean
 	make common
 	make router
 	make final
-	./final a
+	./final A
+elif [ $1 = '2' ]
+then
+	./final B
 elif [ $1 = 'g' ]
 then
 	make gateway
