@@ -28,15 +28,15 @@ void Router::print_data_packet(Packet* p){
 	char num_addr = hdr->getOctet(NUM_ADDR_INDEX);
 	std::cout << "num_addr: " << num_addr << "\n";
 	
-	char dest_addrs_buffer[num_addr+1];
-	int i;
-	for(i=0; i < num_addr; i++){
+	int int_num_addr = (int)(num_addr-'0');
+	char dest_addrs_buffer[int_num_addr+1];
+	for(int i=0; i < int_num_addr; i++){
 		dest_addrs_buffer[i]=hdr->getOctet(NUM_ADDR_INDEX+i+1);
 	}
-	dest_addrs_buffer[num_addr]='\0';
+	dest_addrs_buffer[int_num_addr]='\0';
 	std::cout << "dst_addrs: " << dest_addrs_buffer << "\n";
 	//Second print the payload
-	std::cout << "payload_size: " << hdr->getOctet(PAYLOAD_SIZE_INDEX((int)(num_addr-'0'))) << "\n";
+	std::cout << "payload_size: " << hdr->getOctet(PAYLOAD_SIZE_INDEX(int_num_addr)) << "\n";
 	std::cout << "packet_payload: " << p->getPayload() << "\n\n";
 }
 
@@ -51,12 +51,12 @@ Packet* Router::create_data_packet(char p_type, char ttl, char src_addr, char nu
 	hdr->setOctet(ttl,TTL_INDEX);
 	hdr->setOctet(src_addr,SRC_ADDR_INDEX);
 	hdr->setOctet(num_addr,NUM_ADDR_INDEX);
-	for(int i=0; i<num_addr; i++){
+	int int_num_addr = (int)(num_addr-'0');
+	for(int i=0; i<int_num_addr; i++){
 		hdr->setOctet(*(dest_addrs+i), NUM_ADDR_INDEX+i+1);
 	}
-	hdr->setOctet(payload_size,PAYLOAD_SIZE_INDEX(num_addr));
+	hdr->setOctet(payload_size,PAYLOAD_SIZE_INDEX(int_num_addr));
 	//Fill the packet with the data payload
-	hdr->setOctet(PAYLOAD_SIZE_INDEX((int)(num_addr-'0')), (char)(payload_size));
 	my_dpacket->fillPayload(payload_size, payload);
 	
 	return my_dpacket;
@@ -70,13 +70,14 @@ void Router::send_data_packet(Packet* p){
 	char num_addr = hdr->getOctet(NUM_ADDR_INDEX);
 	int int_num_addr = (int)(num_addr-'0');
 	
+	
 	if(int_num_addr == 1 && hdr->getOctet(NUM_ADDR_INDEX+1) == id){ //if the packet is uni and targeted to me
+		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 		std::cout << "DATA PACKET TARGETED TO ME IS RXED: \n";
 		print_data_packet(p);
-		std::cout << "_____________________________________\n";
+		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 		return;
 	}
-	std::cout << "B ICIN\n";
 	int* f_ports = forward_rxed_data_packet_to_port(p);
 	//Use the "goodness" of at most 3 MC receivers
 	std::vector <int> ports_done;
@@ -91,10 +92,11 @@ void Router::send_data_packet(Packet* p){
 				if(curr_port == f_ports[j])
 					temp_dests.push_back(hdr->getOctet(NUM_ADDR_INDEX+j+1));
 			}
-			char* dest_addrs = new char[temp_dests.size()];
+			char* dest_addrs = new char[temp_dests.size()+1];
 			for(int k=0; k<temp_dests.size(); k++){
 				dest_addrs[k] = temp_dests.at(k);
 			}
+			dest_addrs[temp_dests.size()] = (char)'\0';
 			//hdr->getOctet(PAYLOAD_SIZE_INDEX(temp_dests.size()))
 			int payload_size = strlen(p->getPayload());
 			char* payload = new char[payload_size];
@@ -242,7 +244,8 @@ void Router::build_map(){
   //Everything is ready to rock
   
   //Some experiments
-  if(id == 'A'){
+  /*
+  if(id == 'W'){
   	int f_port = ftf_p->forward_to_port(1, "B", NULL);
 		std::cout << "unicast to \"B\" forwarding_port: " << f_port << std::endl;
 		int* f_ports = new int[3];
@@ -250,9 +253,9 @@ void Router::build_map(){
 		std::cout << "f_ports: " << f_ports[ 0] << " - "	<< f_ports[1] << " - " << f_ports[2] << std::endl;
 		delete f_ports;
   }
-  //*/
-  Packet* trial_mc_pkt = create_data_packet('m', '9', id, '2', 
-														 			 					(char*)"YZ", 6, (char*)"deneme");
+  */
+  Packet* trial_mc_pkt = create_data_packet('m', '9', id, '3',
+														 			 					(char*)"XYZ", 6, (char*)"deneme");
 	Packet* trial_u_pkt = create_data_packet('m', '9', id, '1', 
 														 			 					(char*)"X", 6, (char*)"deneme");
 	//std::cout << "///////////////////////////////////\n";
@@ -405,15 +408,17 @@ void* Router::listen_on_port(void* thread_id){
   		extract_ls_info(rxed_p);
   		//Send it to outgoing ports
   		int ttl = (int)(hdr->getOctet(1)-'0');
-  		std::cout << "----------------------------------------\n";
-  		std::cout << "LS TTL: " << hdr->getOctet(1) << std::endl;
+  		
+  		//std::cout << "----------------------------------------\n";
+  		//std::cout << "LS TTL: " << hdr->getOctet(1) << std::endl;
   		if( ttl != 0){ //check ttl if it is 0 then discard:dont forward further
   			--ttl;
   			hdr->setOctet( (char)('0'+ttl),1);
-  			std::cout << "UPDATED LS TTL: " << hdr->getOctet(1) << std::endl;	
+  			//std::cout << "UPDATED LS TTL: " << hdr->getOctet(1) << std::endl;	
 	  		send_ls_to_outgoing_ports(nbr_tbl.at(tlocal_tid).TxP, rxed_p);
 	  	}
-	  	std::cout << "----------------------------------------\n";
+	  	//std::cout << "----------------------------------------\n";
+	  	
 		}
 		else if(hdr->getOctet(0) == 'm'){ //Data packet is rxed
 			cout << "\nDATA packet is rxed from node_id: " << hdr->getOctet(2)
@@ -431,23 +436,30 @@ void Router::extract_ls_info(Packet* lsp){
 	char id = hdr->getOctet(2);
 	if(std::find(graph_name.begin(), graph_name.end(), id) != graph_name.end()){
 		std::cout << "Connectivity info of node_id: " << id << " is already in graph_name\n";
+		std::cout << "here comes the graph_name: ";
+		for( std::vector<char>::const_iterator i = graph_name.begin(); i != graph_name.end(); ++i)
+  	  std::cout << *i << '-';
+		std::cout << std::endl;
 		return;
 	}
 	graph_name.push_back(id);
+	
 	std::cout << "here comes the graph_name: ";
 	for( std::vector<char>::const_iterator i = graph_name.begin(); i != graph_name.end(); ++i)
-    std::cout << *i << ' ';
+    std::cout << *i << '-';
 	std::cout << std::endl;
+	
 	//Extract the connectivity info
 	/*
 	//Check the seq_num
 	hdr->getOctet(1);
 	*/
 	int num_nhops = hdr->getOctet(3);
-	char* nhops = new char[num_nhops];
+	char* nhops = new char[num_nhops+1];
 	for(int i=0; i<num_nhops; i++){
 		nhops[i] = hdr->getOctet(3+i+1);
 	}
+	nhops[num_nhops] = (char)'\0';
 	netnode_nhops.insert (std::pair<char,char*>(id, nhops));
 	
 	
@@ -589,7 +601,7 @@ void Router::broadcast_ls_packets(){
   ls_tx_timer_port->setRemoteAddress(dst_addr);
 	ls_tx_timer_port->init();
 
-	ls_tx_timer_port->timer_.startTimer(23);
+	ls_tx_timer_port->timer_.startTimer(13);
 	cout << "Timer for LS messages started\n";
 }
 
@@ -597,14 +609,18 @@ void Router::send_ls_to_outgoing_ports(char* incoming_TxP, Packet* p){
 	PacketHdr *hdr = p->accessHeader();
 	std::cout << "LS packed rxed from node_id" << hdr->getOctet(2) << " is sent to outgoing ports" 
 						<< " with TTL:" << hdr->getOctet(1) << std::endl;
+	int counter = 0;
 	for(int i=0; i<num_neighbors; i++){
 		if(strcmp(nbr_tbl.at(i).TxP, incoming_TxP) != 0){ //Do not send it to incoming port
 			try{
+				++counter;
 				txing_ports[i]->sendPacket(p);
 			}catch(const char *reason){
 				cerr << "Exception:" << reason << endl;
 			}
 		}
+		std::cout << "Incoming LS packet is forwarded to " << counter
+							<< " outgoin ports\n";
 	}
 }
 
@@ -618,7 +634,7 @@ void Router::ls_tx_timer_action(){
 			exit(-1);
     }
 	}
-	ls_tx_timer_port->timer_.startTimer(23);
+	ls_tx_timer_port->timer_.startTimer(13);
 }
 
 void Router::disc_tx_timer_action(){
