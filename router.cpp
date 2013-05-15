@@ -36,7 +36,7 @@ void Router::print_data_packet(Packet* p){
 	dest_addrs_buffer[int_num_addr]='\0';
 	std::cout << "dst_addrs: " << dest_addrs_buffer << "\n";
 	//Second print the payload
-	std::cout << "payload_size: " << hdr->getOctet(PAYLOAD_SIZE_INDEX(int_num_addr)) << "\n";
+	//std::cout << "payload_size: " << hdr->getOctet(PAYLOAD_SIZE_INDEX(int_num_addr)) << "\n";
 	std::cout << "packet_payload: " << p->getPayload() << "\n\n";
 }
 
@@ -254,8 +254,8 @@ void Router::build_map(){
 		delete f_ports;
   }
   */
-  Packet* trial_mc_pkt = create_data_packet('m', '9', id, '3',
-														 			 					(char*)"XYZ", 6, (char*)"deneme");
+  Packet* trial_mc_pkt = create_data_packet('m', '9', id, '2',
+														 			 					(char*)"XY", 6, (char*)"deneme");
 	Packet* trial_u_pkt = create_data_packet('m', '9', id, '1', 
 														 			 					(char*)"X", 6, (char*)"deneme");
 	//std::cout << "///////////////////////////////////\n";
